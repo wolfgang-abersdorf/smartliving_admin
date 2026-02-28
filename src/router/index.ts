@@ -38,6 +38,11 @@ const router = createRouter({
                     path: 'buildings/:id',
                     name: 'building-edit',
                     component: () => import('../views/BuildingEditorView.vue')
+                },
+                {
+                    path: 'collections',
+                    name: 'collections',
+                    component: () => import('../views/CollectionsListView.vue')
                 }
             ]
         }
