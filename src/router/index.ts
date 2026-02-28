@@ -43,6 +43,16 @@ const router = createRouter({
                     path: 'collections',
                     name: 'collections',
                     component: () => import('../views/CollectionsListView.vue')
+                },
+                {
+                    path: 'collections/new',
+                    name: 'collection-create',
+                    component: () => import('../views/CollectionEditorView.vue')
+                },
+                {
+                    path: 'collections/:id',
+                    name: 'collection-edit',
+                    component: () => import('../views/CollectionEditorView.vue')
                 }
             ]
         }

@@ -38,6 +38,16 @@ function getBuildingsCount(col: Collection): number {
   return col.acf?.buildings_ids?.length ?? 0
 }
 
+async function deleteCollection(id: number) {
+  if (!confirm('Are you sure you want to delete this collection?')) return
+  try {
+    await api.delete(`/collections/${id}`)
+    collections.value = collections.value.filter(c => c.id !== id)
+  } catch (err: any) {
+    alert('Failed to delete collection')
+  }
+}
+
 onMounted(() => {
   fetchCollections()
 })
@@ -51,12 +61,12 @@ onMounted(() => {
         <p class="mt-2 text-sm text-gray-700">Списки объектов, собранные агентами для клиентов.</p>
       </div>
       <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <button
-          type="button"
+        <router-link
+          to="/admin/collections/new"
           class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
         >
           Add New Collection
-        </button>
+        </router-link>
       </div>
     </div>
 
@@ -112,8 +122,8 @@ onMounted(() => {
                     {{ col.acf?.objects || '—' }}
                   </td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                    <button class="text-red-500 hover:text-red-700">Delete</button>
+                    <router-link :to="`/admin/collections/${col.id}`" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</router-link>
+                    <button @click="deleteCollection(col.id)" class="text-red-500 hover:text-red-700">Delete</button>
                   </td>
                 </tr>
               </tbody>
