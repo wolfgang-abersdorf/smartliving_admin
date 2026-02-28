@@ -14,8 +14,8 @@ export const useAuthStore = defineStore('auth', () => {
             token.value = response.data.token
             user.value = response.data.user
 
-            // We explicitly expect ADMIN or root level privileges here
-            if (user.value.role !== 'SUPERADMIN' && user.value.role !== 'ADMIN') {
+            // We explicitly expect admin or root level privileges here
+            if (user.value.role !== 'SUPERADMIN' && user.value.role !== 'admin' && user.value.role !== 'ADMIN') {
                 throw new Error('Unauthorized role')
             }
 

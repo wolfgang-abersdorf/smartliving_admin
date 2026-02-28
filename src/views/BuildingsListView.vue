@@ -8,7 +8,7 @@ const isLoading = ref(true)
 async function fetchBuildings() {
   try {
     const response = await api.get('/buildings?limit=50')
-    buildings.value = response.data.data
+    buildings.value = response.data.items || []
   } catch (error) {
     console.error('Failed to load buildings', error)
   } finally {
@@ -74,21 +74,21 @@ onMounted(() => {
 
                 <tr v-else v-for="building in buildings" :key="building.id">
                   <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                    {{ building.title }}
+                    {{ building.title?.rendered || building.title }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ building.area || 'N/A' }}
+                    {{ building.acf?.area || 'N/A' }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusColor(building.status)]">
-                      {{ building.status }}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Published
                     </span>
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                     {{ building.buildingClass || 'N/A' }}
+                     {{ building.acf?.characteristics?.class_of_building || 'N/A' }}
                   </td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {{ building.title }}</span></a>
+                    <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {{ building.title?.rendered || building.title }}</span></a>
                   </td>
                 </tr>
               </tbody>

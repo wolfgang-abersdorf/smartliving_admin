@@ -17,7 +17,7 @@ async function fetchDashboardStats() {
       api.get('/collections')
     ])
     
-    stats.value[0]!.stat = buildingsRes.data.pagination.totalItems.toString()
+    stats.value[0]!.stat = buildingsRes.data.total.toString()
     stats.value[1]!.stat = collectionsRes.data.length.toString()
     stats.value[2]!.stat = '1+' // Mocked until we implement the users endpoint
     
