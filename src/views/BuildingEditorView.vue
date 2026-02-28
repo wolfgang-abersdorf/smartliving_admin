@@ -1,7 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+// Fix Leaflet default icon issue
+import icon from 'leaflet/dist/images/marker-icon.png'
+import iconShadow from 'leaflet/dist/images/marker-shadow.png'
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const route = useRoute()
 const router = useRouter()
@@ -49,6 +63,91 @@ const form = ref({
 
 const isLoading = ref(isEditing.value)
 const isSaving = ref(false)
+
+const map = ref<L.Map | null>(null)
+const marker = ref<L.Marker | null>(null)
+const searchQuery = ref('')
+const isSearching = ref(false)
+
+async function searchLocation() {
+  if (!searchQuery.value) return
+  isSearching.value = true
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value)}`)
+    const data = await response.json()
+    if (data && data.length > 0) {
+      const { lat, lon } = data[0]
+      form.value.lat = parseFloat(lat)
+      form.value.lng = parseFloat(lon)
+      if (map.value && marker.value) {
+        const pos: L.LatLngExpression = [form.value.lat, form.value.lng]
+        map.value.setView(pos, 16)
+        marker.value.setLatLng(pos)
+      }
+    }
+  } catch (error) {
+    console.error('Search failed', error)
+  } finally {
+    isSearching.value = false
+  }
+}
+
+function initMap() {
+  if (map.value) return
+
+  const initialLat = form.value.lat || -8.4095
+  const initialLng = form.value.lng || 115.1889
+  
+  map.value = L.map('map-container').setView([initialLat, initialLng], 13)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map.value)
+
+  marker.value = L.marker([initialLat, initialLng], { draggable: true }).addTo(map.value)
+
+  marker.value.on('dragend', () => {
+    if (marker.value) {
+      const position = marker.value.getLatLng()
+      form.value.lat = position.lat
+      form.value.lng = position.lng
+    }
+  })
+
+  map.value.on('click', (e: L.LeafletMouseEvent) => {
+    const { lat, lng } = e.latlng
+    form.value.lat = lat
+    form.value.lng = lng
+    if (marker.value) {
+      marker.value.setLatLng([lat, lng])
+    }
+  })
+}
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'map') {
+    nextTick(() => {
+      initMap()
+      if (map.value) {
+        map.value.invalidateSize()
+        if (form.value.lat && form.value.lng) {
+          const pos: L.LatLngExpression = [form.value.lat, form.value.lng]
+          map.value.setView(pos)
+          if (marker.value) marker.value.setLatLng(pos)
+        }
+      }
+    })
+  }
+})
+
+watch(() => [form.value.lat, form.value.lng], ([newLat, newLng]) => {
+  if (marker.value && map.value) {
+    const pos: L.LatLngExpression = [Number(newLat), Number(newLng)]
+    if (!marker.value.getLatLng().equals(L.latLng(pos))) {
+       marker.value.setLatLng(pos)
+    }
+  }
+})
 
 async function fetchBuilding() {
   if (!isEditing.value) return
@@ -327,30 +426,68 @@ onMounted(() => {
           <!-- 3. Location on Map -->
           <div v-show="activeTab === 'map'" class="space-y-8">
             <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6 border border-gray-100">
-              <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Location on Map</h3>
+              <div class="sm:flex sm:items-center sm:justify-between mb-6">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Location on Map</h3>
+                <div class="text-xs text-slate-400 font-medium">Click on map or drag marker to set coordinates</div>
+              </div>
+
               <div class="grid grid-cols-1 gap-6">
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Latitude</label>
-                    <input type="number" v-model="form.lat" step="any" class="block w-full px-4 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                <!-- Search Bar -->
+                <div class="relative group">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   </div>
-                  <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Longitude</label>
-                    <input type="number" v-model="form.lng" step="any" class="block w-full px-4 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                  <input 
+                    type="text" 
+                    v-model="searchQuery" 
+                    @keydown.enter.prevent="searchLocation"
+                    placeholder="Search for a location (e.g. Canggu, Bali)..." 
+                    class="block w-full pl-11 pr-24 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-100 focus:bg-white outline-none transition-all shadow-sm group-hover:border-slate-200"
+                  />
+                  <button 
+                    @click="searchLocation" 
+                    class="absolute right-2 top-2 bottom-2 px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
+                    :disabled="isSearching"
+                  >
+                    {{ isSearching ? 'Finding...' : 'Search' }}
+                  </button>
+                </div>
+
+                <!-- Map Container -->
+                <div id="map-container" class="h-[500px] w-full rounded-2xl border border-slate-200 shadow-inner overflow-hidden z-0"></div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="relative">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Latitude</label>
+                    <input 
+                      type="number" 
+                      v-model.number="form.lat" 
+                      step="any" 
+                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm" 
+                    />
+                  </div>
+                  <div class="relative">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Longitude</label>
+                    <input 
+                      type="number" 
+                      v-model.number="form.lng" 
+                      step="any" 
+                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm" 
+                    />
                   </div>
                 </div>
                 
-                <div class="border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center bg-slate-50/30">
-                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 text-indigo-500 mb-4">
-                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   </div>
-                  <h4 class="text-sm font-bold text-slate-700 mb-1">Coordinates Preview</h4>
-                  <p class="text-xs text-slate-400 mb-4">Map integration in progress. Showing coordinates for reference.</p>
-                  <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 max-w-xs mx-auto text-xs font-mono text-indigo-600">
-                    {{ form.lat }}, {{ form.lng }}
+                  <div class="flex-1">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-0.5">Current Location</h4>
+                    <p class="text-[11px] text-slate-500 font-medium">Double click anywhere to add a marker. Drag marker to move.</p>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[10px] font-mono font-bold text-indigo-400 block uppercase">Coordinates</span>
+                    <span class="text-xs font-mono font-bold text-indigo-600">{{ form.lat.toFixed(6) }}, {{ form.lng.toFixed(6) }}</span>
                   </div>
                 </div>
               </div>
