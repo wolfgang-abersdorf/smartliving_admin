@@ -18,7 +18,8 @@
 
 body {
   font-family: 'Outfit', 'Inter', sans-serif;
-  background-color: #f8fafc;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
+  background-attachment: fixed;
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

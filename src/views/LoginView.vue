@@ -37,7 +37,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-50 font-['Outfit'] relative overflow-hidden">
+  <div class="min-h-screen flex items-center justify-center bg-transparent font-['Outfit'] relative overflow-hidden">
     <!-- Background patterns -->
     <div class="absolute -top-40 -left-40 h-[600px] w-[600px] bg-indigo-100/50 blur-[120px] rounded-full"></div>
     <div class="absolute -bottom-40 -right-40 h-[600px] w-[600px] bg-purple-100/50 blur-[120px] rounded-full"></div>

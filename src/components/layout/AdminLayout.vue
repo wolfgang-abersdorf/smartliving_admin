@@ -27,7 +27,7 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="h-screen flex bg-slate-50 font-['Outfit']">
+  <div class="h-screen flex bg-transparent font-['Outfit']">
     <!-- Static sidebar for desktop -->
     <div class="hidden md:flex md:flex-shrink-0">
       <div class="flex flex-col w-72 p-6">
@@ -97,7 +97,7 @@ function handleLogout() {
     </div>
 
     <!-- Main Content wrapper -->
-    <div class="flex flex-col flex-1 w-0 h-screen overflow-hidden relative">
+    <div class="flex flex-col flex-1 w-0 h-screen overflow-hidden relative bg-transparent">
       <!-- Glow effect in background -->
       <div class="absolute -top-24 -right-24 h-96 w-96 bg-indigo-100/50 blur-[100px] rounded-full -z-10"></div>
       <div class="absolute top-1/2 -left-24 h-64 w-64 bg-purple-100/30 blur-[80px] rounded-full -z-10"></div>
