@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { 
+  BuildingOfficeIcon, 
+  MapPinIcon, 
+  ChevronRightIcon,
+  MagnifyingGlassIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 
 const buildings = ref<any[]>([])
 const isLoading = ref(true)
+const searchQuery = ref('')
 
 async function fetchBuildings() {
   try {
-    const response = await api.get('/buildings?limit=50')
-    buildings.value = response.data.items || []
+    const response = await api.get('/buildings?per_page=50')
+    buildings.value = response.data.items
   } catch (error) {
     console.error('Failed to load buildings', error)
   } finally {
@@ -17,84 +25,94 @@ async function fetchBuildings() {
 }
 
 function getStatusColor(status: string) {
-  if (status === 'PUBLISHED') return 'bg-green-100 text-green-800'
-  if (status === 'DRAFT') return 'bg-yellow-100 text-yellow-800'
-  return 'bg-gray-100 text-gray-800'
+  switch (status?.toLowerCase()) {
+    case 'publish':
+    case 'published':
+      return 'bg-emerald-50 text-emerald-600 border-emerald-100'
+    case 'draft':
+      return 'bg-amber-50 text-amber-600 border-amber-100'
+    case 'private':
+      return 'bg-slate-100 text-slate-600 border-slate-200'
+    default:
+      return 'bg-slate-50 text-slate-500 border-slate-100'
+  }
 }
 
-onMounted(() => {
-  fetchBuildings()
-})
+onMounted(fetchBuildings)
 </script>
 
 <template>
-  <div>
-    <div class="sm:flex sm:items-center">
-      <div class="sm:flex-auto">
-        <h1 class="text-2xl font-bold text-gray-900">Properties (Buildings)</h1>
-        <p class="mt-2 text-sm text-gray-700">A list of all the buildings including their title, status, and area.</p>
+  <div class="pb-12">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+      <div>
+        <h1 class="text-3xl font-black text-slate-800 tracking-tight">Properties</h1>
+        <p class="text-slate-500 mt-1 font-medium">Manage and monitor all building objects.</p>
       </div>
-      <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <router-link to="/admin/buildings/new" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
-          Add property
+      <div class="flex items-center gap-3">
+        <div class="relative group">
+          <MagnifyingGlassIcon class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          <input 
+            type="text" 
+            v-model="searchQuery"
+            placeholder="Search properties..." 
+            class="pl-11 pr-6 py-3 glass rounded-2xl w-full md:w-80 text-sm font-medium focus:ring-2 focus:ring-indigo-200 outline-none border-white/60 transition-all"
+          />
+        </div>
+        <router-link
+          to="/admin/buildings/new"
+          class="inline-flex items-center premium-gradient text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-indigo-100 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
+        >
+          <PlusIcon class="h-5 w-5 mr-2" />
+          Add Property
         </router-link>
       </div>
     </div>
-    
-    <div class="mt-8 flex flex-col">
-      <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-            
-            <table class="min-w-full divide-y divide-gray-300">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Title</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Area</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Class</th>
-                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span class="sr-only">Edit</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 bg-white">
-                
-                <tr v-if="isLoading">
-                  <td colspan="5" class="py-10 text-center text-sm text-gray-500">
-                    Loading properties...
-                  </td>
-                </tr>
 
-                <tr v-else-if="buildings.length === 0">
-                  <td colspan="5" class="py-10 text-center text-sm text-gray-500">
-                    No properties found.
-                  </td>
-                </tr>
+    <div v-if="isLoading" class="space-y-4">
+       <div v-for="i in 5" :key="i" class="h-24 glass rounded-[1.5rem] animate-pulse"></div>
+    </div>
 
-                <tr v-else v-for="building in buildings" :key="building.id">
-                  <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                    {{ building.title?.rendered || building.title }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ building.acf?.area || 'N/A' }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Published
-                    </span>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                     {{ building.acf?.characteristics?.class_of_building || 'N/A' }}
-                  </td>
-                  <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <router-link :to="`/admin/buildings/${building.id}`" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {{ building.title?.rendered || building.title }}</span></router-link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+    <div v-else class="space-y-4">
+      <div v-for="building in buildings" :key="building.id" 
+           class="group glass rounded-[2rem] p-5 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 border border-white/60 hover:-translate-y-1">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center flex-1 min-w-0">
+            <div class="h-16 w-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform">
+              <BuildingOfficeIcon class="h-8 w-8" />
+            </div>
+            <div class="ml-5 truncate">
+              <h3 class="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
+                {{ building.title?.rendered || building.title }}
+              </h3>
+              <div class="flex items-center mt-1 text-sm font-medium text-slate-400">
+                <MapPinIcon class="h-4 w-4 mr-1" />
+                {{ building.acf?.area || 'Location not specified' }}
+                <span class="mx-2 text-slate-200">•</span>
+                <span class="text-slate-500 font-bold capitalize">{{ building.acf?.characteristics?.class_of_building || 'Standard' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-6">
+            <div :class="[getStatusColor(building.status), 'px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border']">
+              {{ building.status || 'Published' }}
+            </div>
+            <div class="h-10 w-1px bg-slate-100 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+              <router-link 
+                :to="`/admin/buildings/${building.id}`"
+                class="h-12 w-12 rounded-2xl border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-100 transition-all active:scale-90"
+              >
+                <ChevronRightIcon class="h-6 w-6" />
+              </router-link>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div v-if="buildings.length === 0" class="py-20 text-center glass rounded-[2rem]">
+        <BuildingOfficeIcon class="h-16 w-16 mx-auto text-slate-200 mb-4" />
+        <p class="text-slate-400 font-bold">No properties found.</p>
       </div>
     </div>
   </div>

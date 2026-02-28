@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { 
+  FolderIcon, 
+  UserIcon, 
+  CalendarIcon, 
+  SparklesIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/vue/24/outline'
 
 interface Collection {
   id: number
@@ -35,11 +44,8 @@ function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
+    month: 'short',
+    year: 'numeric'
   }).format(d)
 }
 
@@ -53,102 +59,91 @@ async function deleteCollection(id: number) {
   }
 }
 
-onMounted(() => {
-  fetchCollections()
-})
+onMounted(fetchCollections)
 </script>
 
 <template>
-  <div>
-    <div class="sm:flex sm:items-center">
-      <div class="sm:flex-auto">
-        <h1 class="text-2xl font-bold text-gray-900">Collections</h1>
-        <p class="mt-2 text-sm text-gray-700">Списки объектов, собранные агентами для клиентов.</p>
+  <div class="pb-12">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+      <div>
+        <h1 class="text-3xl font-black text-slate-800 tracking-tight">Collections</h1>
+        <p class="text-slate-500 mt-1 font-medium">Curated property lists for your clients.</p>
       </div>
-      <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <router-link
-          to="/admin/collections/new"
-          class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
-        >
-          Add New Collection
-        </router-link>
-      </div>
+      <router-link
+        to="/admin/collections/new"
+        class="inline-flex items-center premium-gradient text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-lg shadow-indigo-100 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95"
+      >
+        <PlusIcon class="h-5 w-5 mr-2" />
+        New Collection
+      </router-link>
     </div>
 
-    <div class="mt-8 flex flex-col">
-      <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white border border-gray-100">
+    <div v-if="isLoading" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+       <div v-for="i in 6" :key="i" class="h-48 glass rounded-[2rem] animate-pulse"></div>
+    </div>
 
-            <!-- Error -->
-            <div v-if="error" class="p-6 text-center text-red-600 text-sm italic">
-              {{ error }}
+    <div v-else-if="error" class="p-10 glass rounded-[2rem] text-center text-rose-500 font-bold italic">
+      {{ error }}
+    </div>
+
+    <div v-else class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-for="col in collections" :key="col.id" 
+           class="group glass rounded-[2.5rem] p-8 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 border border-white/60 hover:-translate-y-2 relative overflow-hidden">
+        
+        <div class="absolute -top-10 -right-10 h-24 w-24 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 group-hover:scale-150 transition-all duration-500"></div>
+
+        <div class="relative">
+          <div class="flex items-center justify-between mb-6">
+            <div class="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform">
+              <FolderIcon class="h-6 w-6" />
             </div>
+            <div class="flex items-center gap-2">
+               <span class="px-3 py-1 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                 ID: {{ col.id }}
+               </span>
+            </div>
+          </div>
 
-            <table v-else class="min-w-full divide-y divide-gray-300">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Title</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Author</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Items</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date</th>
-                  <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span class="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 bg-white">
+          <h3 class="text-lg font-bold text-slate-800 mb-4 group-hover:text-indigo-600 transition-colors line-clamp-1">
+            {{ getTitle(col) }}
+          </h3>
 
-                <tr v-if="isLoading">
-                  <td colspan="5" class="py-10 text-center text-sm text-gray-500">
-                    <div class="flex items-center justify-center">
-                      <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Loading collections...
-                    </div>
-                  </td>
-                </tr>
+          <div class="space-y-3 mb-8">
+            <div class="flex items-center text-sm font-medium text-slate-500">
+              <UserIcon class="h-4 w-4 mr-2 text-slate-300" />
+              {{ col.authorName || '—' }}
+            </div>
+            <div class="flex items-center text-sm font-medium text-slate-500">
+              <SparklesIcon class="h-4 w-4 mr-2 text-indigo-300" />
+              {{ col.buildingsCount }} Properties
+            </div>
+            <div class="flex items-center text-sm font-medium text-slate-400">
+              <CalendarIcon class="h-4 w-4 mr-2 text-slate-300" />
+              {{ formatDate(col.createdAt) }}
+            </div>
+          </div>
 
-                <tr v-else-if="collections.length === 0">
-                  <td colspan="5" class="py-10 text-center text-sm text-gray-500 italic">
-                    No collections found.
-                  </td>
-                </tr>
-
-                <tr v-else v-for="col in collections" :key="col.id" class="hover:bg-gray-50">
-                  <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                    {{ getTitle(col) }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ col.authorName || '—' }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                      {{ col.buildingsCount }} objects
-                    </span>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div class="text-xs text-gray-400">Published</div>
-                    {{ formatDate(col.createdAt) }}
-                  </td>
-                  <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <router-link :to="`/admin/collections/${col.id}`" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</router-link>
-                    <button @click="deleteCollection(col.id)" class="text-red-500 hover:text-red-700">Delete</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
+          <div class="flex items-center gap-3">
+            <router-link 
+              :to="`/admin/collections/${col.id}`"
+              class="flex-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 py-3 rounded-2xl text-xs font-bold text-center transition-colors border border-transparent hover:border-indigo-100"
+            >
+              Edit Details
+            </router-link>
+            <button 
+              @click="deleteCollection(col.id)"
+              class="h-10 w-10 flex items-center justify-center rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all"
+            >
+              <TrashIcon class="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Stats footer -->
-    <div v-if="!isLoading && collections.length > 0" class="mt-4 text-sm text-gray-500 text-right italic font-medium">
-      Total: {{ collections.length }} collections
+      <div v-if="collections.length === 0" class="col-span-full py-20 text-center glass rounded-[2.5rem]">
+        <FolderIcon class="h-16 w-16 mx-auto text-slate-200 mb-4" />
+        <p class="text-slate-400 font-bold">No collections found.</p>
+      </div>
     </div>
   </div>
 </template>

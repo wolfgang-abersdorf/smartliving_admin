@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '../api'
+import { 
+  UsersIcon, 
+  EnvelopeIcon, 
+  PhoneIcon, 
+  ShieldCheckIcon,
+  IdentificationIcon
+} from '@heroicons/vue/24/outline'
 
 interface User {
   id: number
@@ -28,79 +35,76 @@ async function fetchUsers() {
   }
 }
 
-onMounted(() => {
-  fetchUsers()
-})
+function getRoleStyle(role: string) {
+  const r = role?.toLowerCase() || ''
+  if (r.includes('admin')) return 'bg-purple-50 text-purple-600 border-purple-100'
+  if (r.includes('agent')) return 'bg-blue-50 text-blue-600 border-blue-100'
+  return 'bg-emerald-50 text-emerald-600 border-emerald-100'
+}
+
+onMounted(fetchUsers)
 </script>
 
 <template>
-  <div class="px-4 sm:px-6 lg:px-8">
-    <div class="sm:flex sm:items-center">
-      <div class="sm:flex-auto">
-        <h1 class="text-2xl font-bold text-gray-900">Users</h1>
-        <p class="mt-2 text-sm text-gray-700">Manage admin and agent accounts.</p>
-      </div>
-      <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <!-- Add User button could go here -->
-      </div>
+  <div class="pb-12">
+    <div class="mb-10">
+      <h1 class="text-3xl font-black text-slate-800 tracking-tight">Users & Agents</h1>
+      <p class="text-slate-500 mt-1 font-medium">Manage platform access and permissions.</p>
     </div>
 
-    <div class="mt-8 flex flex-col">
-      <div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-          <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
-            <div v-if="error" class="p-4 text-red-600 text-sm italic">{{ error }}</div>
-            
-            <table class="min-w-full divide-y divide-gray-300">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">User</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
-                  <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Phone</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 bg-white">
-                <tr v-if="isLoading">
-                  <td colspan="4" class="py-4 text-center text-sm text-gray-500">Loading users...</td>
-                </tr>
-                <tr v-else-if="users.length === 0">
-                  <td colspan="4" class="py-4 text-center text-sm text-gray-500">No users found.</td>
-                </tr>
-                <tr v-for="user in users" :key="user.id">
-                  <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                    <div class="flex items-center">
-                      <div class="h-10 w-10 flex-shrink-0">
-                        <img v-if="user.profile_photo_url" class="h-10 w-10 rounded-full object-cover" :src="user.profile_photo_url" alt="" />
-                        <div v-else class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
-                          {{ user.username?.[0]?.toUpperCase() || 'U' }}
-                        </div>
-                      </div>
-                      <div class="ml-4">
-                        <div class="font-medium text-gray-900">{{ user.username }}</div>
-                        <div class="text-gray-500">{{ user.name }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ user.email }}
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span :class="[
-                      user.role?.toLowerCase() === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800',
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'
-                    ]">
-                      {{ user.role }}
-                    </span>
-                  </td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ user.phone_number || '—' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+    <div v-if="isLoading" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+       <div v-for="i in 6" :key="i" class="h-64 glass rounded-[2rem] animate-pulse"></div>
+    </div>
+
+    <div v-else-if="error" class="p-10 glass rounded-[2rem] text-center text-rose-500 font-bold italic">
+      {{ error }}
+    </div>
+
+    <div v-else class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-for="user in users" :key="user.id" 
+           class="group glass rounded-[2.5rem] p-8 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 border border-white/60 hover:-translate-y-2 relative overflow-hidden text-center">
+        
+        <div class="absolute top-0 right-0 h-24 w-24 bg-indigo-50/50 rounded-bl-[4rem] -z-10 group-hover:scale-110 transition-transform"></div>
+
+        <div class="flex flex-col items-center">
+          <div class="relative mb-6">
+            <div class="h-24 w-24 rounded-3xl overflow-hidden shadow-xl border-4 border-white group-hover:scale-105 transition-transform duration-500">
+               <img v-if="user.profile_photo_url" :src="user.profile_photo_url" class="h-full w-full object-cover" />
+               <div v-else class="h-full w-full premium-gradient flex items-center justify-center text-white text-3xl font-black">
+                 {{ user.username?.[0]?.toUpperCase() || 'U' }}
+               </div>
+            </div>
+            <div class="absolute -bottom-2 -right-2 h-8 w-8 bg-white rounded-xl shadow-lg flex items-center justify-center text-indigo-500 border border-indigo-50">
+               <ShieldCheckIcon v-if="user.role?.toLowerCase().includes('admin')" class="h-5 w-5" />
+               <IdentificationIcon v-else class="h-5 w-5" />
+            </div>
+          </div>
+
+          <h3 class="text-xl font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
+            {{ user.username }}
+          </h3>
+          <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1 mb-4">{{ user.name || 'Personal Account' }}</p>
+
+          <div :class="[getRoleStyle(user.role), 'px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border mb-6 inline-block']">
+            {{ user.role }}
+          </div>
+
+          <div class="w-full space-y-3 pt-6 border-t border-slate-50">
+            <div class="flex items-center justify-center text-sm font-semibold text-slate-500 group-hover:text-slate-800 transition-colors">
+              <EnvelopeIcon class="h-4 w-4 mr-2 text-slate-300" />
+              {{ user.email }}
+            </div>
+            <div class="flex items-center justify-center text-sm font-semibold text-slate-500">
+              <PhoneIcon class="h-4 w-4 mr-2 text-slate-300" />
+              {{ user.phone_number || 'No Phone' }}
+            </div>
           </div>
         </div>
+      </div>
+
+      <div v-if="users.length === 0" class="col-span-full py-20 text-center glass rounded-[2.5rem]">
+        <UsersIcon class="h-16 w-16 mx-auto text-slate-200 mb-4" />
+        <p class="text-slate-400 font-bold">No users found.</p>
       </div>
     </div>
   </div>
