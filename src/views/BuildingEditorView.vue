@@ -27,8 +27,11 @@ const form = ref({
   title: '',
   description: '',
   area: '',
+  address: '',
   status: 'DRAFT',
   buildingClass: '',
+  developer: '',
+  whatsapp: '',
   mainImageUrl: '',
   blocks: [] as BlockForm[]
 })
@@ -42,14 +45,33 @@ async function fetchBuilding() {
   try {
     const response = await api.get(`/buildings/${buildingId}`)
     const data = response.data
+    const acf = data.acf || {}
+
+    // Map blocks from acf.block, each containing units.unit array
+    const blocks: BlockForm[] = (acf.block || []).map((b: any) => ({
+      title: b.title || '',
+      category: b.category || 'Apartments',
+      completionYear: b.completion_year || new Date().getFullYear(),
+      units: ((b.units && b.units.unit) || []).map((u: any) => ({
+        numberTitle: u.numbertitle || u.numberTitle || '',
+        areaM2: parseFloat(u.area_m2) || 0,
+        price: parseFloat(u.price) || 0,
+        status: u.status || 'Sale',
+        rooms: u.number_of_rooms || 1
+      }))
+    }))
+
     form.value = {
-      title: data.title || '',
-      description: data.description || '',
-      area: data.area || '',
-      status: data.status || 'DRAFT',
-      buildingClass: data.buildingClass || '',
-      mainImageUrl: data.mainImageUrl || '',
-      blocks: data.blocks || []
+      title: data.title?.rendered || data.title || '',
+      description: acf.description || '',
+      area: acf.area || '',
+      address: acf.address || '',
+      status: data.status || 'PUBLISHED',
+      buildingClass: acf.characteristics?.class_of_building || '',
+      developer: acf.developer || '',
+      whatsapp: acf.whatsapp || '',
+      mainImageUrl: acf.main_image || '',
+      blocks
     }
   } catch (error) {
     console.error('Failed to load building', error)
@@ -164,6 +186,29 @@ onMounted(() => {
           <div class="sm:col-span-3">
              <label class="block text-sm font-medium text-gray-700">Class</label>
              <input type="text" v-model="form.buildingClass" class="mt-1 px-3 py-2 border block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+
+          <div class="sm:col-span-6">
+             <label class="block text-sm font-medium text-gray-700">Address</label>
+             <input type="text" v-model="form.address" class="mt-1 px-3 py-2 border block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+
+          <div class="sm:col-span-3">
+             <label class="block text-sm font-medium text-gray-700">Developer</label>
+             <input type="text" v-model="form.developer" class="mt-1 px-3 py-2 border block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+
+          <div class="sm:col-span-3">
+             <label class="block text-sm font-medium text-gray-700">WhatsApp URL</label>
+             <input type="text" v-model="form.whatsapp" placeholder="https://wa.me/..." class="mt-1 px-3 py-2 border block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+
+          <div class="sm:col-span-6">
+             <label class="block text-sm font-medium text-gray-700">Main Image URL</label>
+             <input type="text" v-model="form.mainImageUrl" placeholder="https://..." class="mt-1 px-3 py-2 border block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+             <div v-if="form.mainImageUrl" class="mt-2">
+               <img :src="form.mainImageUrl" alt="Main image preview" class="w-48 h-32 object-cover rounded-md border border-gray-200" />
+             </div>
           </div>
         </div>
       </div>

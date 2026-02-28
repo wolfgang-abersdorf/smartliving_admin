@@ -35,9 +35,9 @@ onMounted(() => {
         <p class="mt-2 text-sm text-gray-700">A list of all the buildings including their title, status, and area.</p>
       </div>
       <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-        <button type="button" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
+        <router-link to="/admin/buildings/new" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto">
           Add property
-        </button>
+        </router-link>
       </div>
     </div>
     
@@ -88,7 +88,7 @@ onMounted(() => {
                      {{ building.acf?.characteristics?.class_of_building || 'N/A' }}
                   </td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {{ building.title?.rendered || building.title }}</span></a>
+                    <router-link :to="`/admin/buildings/${building.id}`" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, {{ building.title?.rendered || building.title }}</span></router-link>
                   </td>
                 </tr>
               </tbody>
