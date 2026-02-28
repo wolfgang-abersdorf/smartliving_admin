@@ -33,6 +33,8 @@ const form = ref({
   developer: '',
   whatsapp: '',
   mainImageUrl: '',
+  stampImageUrl: '',
+  stampPosition: 'top-right',
   blocks: [] as BlockForm[]
 })
 
@@ -71,6 +73,8 @@ async function fetchBuilding() {
       developer: acf.developer || '',
       whatsapp: acf.whatsapp || '',
       mainImageUrl: acf.main_image || '',
+      stampImageUrl: acf.stamp_image || '',
+      stampPosition: acf.stamp_position || 'top-right',
       blocks
     }
   } catch (error) {
@@ -136,7 +140,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="pb-16 max-w-5xl mx-auto">
+  <div class="pb-16 max-w-7xl mx-auto">
     <div class="sm:flex sm:items-center sm:justify-between mb-8">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Edit Property' : 'Add New Property' }}</h1>
@@ -155,7 +159,10 @@ onMounted(() => {
       Loading...
     </div>
 
-    <div v-else class="space-y-8">
+    <div v-else class="lg:flex lg:items-start lg:gap-8">
+      <!-- Main Column -->
+      <div class="flex-1 space-y-8 min-w-0">
+
       <!-- Basic Info Section -->
       <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6 border border-gray-100">
         <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Basic Information</h3>
@@ -283,6 +290,69 @@ onMounted(() => {
               <span class="text-lg mr-2">+</span> Add a new Block / Phase
             </button>
          </div>
+      </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="lg:w-80 space-y-6 flex-shrink-0 mt-8 lg:mt-0">
+        <!-- Publish / Status Widget -->
+        <div class="bg-white shadow sm:rounded-2xl border border-white/60 overflow-hidden glass">
+          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Publish</h3>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-500 font-medium">Status:</span>
+              <span class="font-bold text-indigo-600">{{ form.status }}</span>
+            </div>
+            <button @click="saveBuilding" :disabled="isSaving" class="w-full premium-gradient text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:shadow-xl transition-all active:scale-95">
+              {{ isSaving ? 'Saving...' : 'Update Property' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Image Stamp Widget -->
+        <div class="bg-white shadow sm:rounded-2xl border border-white/60 overflow-hidden glass">
+          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Image Stamp</h3>
+          </div>
+          <div class="p-6">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Stamp Image URL</label>
+            <div class="space-y-4">
+              <div v-if="form.stampImageUrl" class="relative group">
+                <img :src="form.stampImageUrl" alt="Stamp preview" class="w-full h-32 object-contain bg-slate-50 rounded-xl border border-slate-100 p-2" />
+                <button @click="form.stampImageUrl = ''" class="absolute top-2 right-2 bg-white/80 backdrop-blur p-1 rounded-lg text-rose-500 hover:bg-rose-50 shadow-sm transition-colors opacity-0 group-hover:opacity-100">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div v-else class="border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50/30">
+                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">No stamp selected</p>
+              </div>
+              
+              <input 
+                type="text" 
+                v-model="form.stampImageUrl" 
+                placeholder="https://...png" 
+                class="block w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+              />
+
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Position</label>
+                <select v-model="form.stampPosition" class="block w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-100 outline-none transition-all">
+                  <option value="top-left">Top Left</option>
+                  <option value="top_right">Top Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="center">Center</option>
+                </select>
+              </div>
+
+              <p class="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                PNG format with transparent background recommended. Suggested size: 500x500px.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
