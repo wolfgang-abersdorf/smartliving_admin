@@ -53,6 +53,11 @@ const router = createRouter({
                     path: 'collections/:id',
                     name: 'collection-edit',
                     component: () => import('../views/CollectionEditorView.vue')
+                },
+                {
+                    path: 'users',
+                    name: 'users',
+                    component: () => import('../views/UsersListView.vue')
                 }
             ]
         }
