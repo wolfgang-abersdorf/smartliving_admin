@@ -14,8 +14,9 @@ export const useAuthStore = defineStore('auth', () => {
             token.value = response.data.token
             user.value = response.data.user
 
-            // We explicitly expect admin or root level privileges here
-            if (user.value.role !== 'SUPERADMIN' && user.value.role !== 'admin' && user.value.role !== 'ADMIN') {
+            // Allow admin and agent roles (agents are the primary users of this panel)
+            const allowedRoles = ['admin', 'ADMIN', 'SUPERADMIN', 'agent']
+            if (!allowedRoles.includes(user.value.role)) {
                 throw new Error('Unauthorized role')
             }
 
