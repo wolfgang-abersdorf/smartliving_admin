@@ -102,9 +102,9 @@ function initMap() {
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map.value)
+  }).addTo(map.value as L.Map)
 
-  marker.value = L.marker([initialLat, initialLng], { draggable: true }).addTo(map.value)
+  marker.value = L.marker([initialLat, initialLng], { draggable: true }).addTo(map.value as L.Map)
 
   marker.value.on('dragend', () => {
     if (marker.value) {

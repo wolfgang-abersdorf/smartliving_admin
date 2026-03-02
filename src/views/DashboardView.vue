@@ -6,7 +6,6 @@ import {
   FolderOpenIcon, 
   UsersIcon, 
   PlusIcon,
-  MagnifyingGlassIcon,
   QueueListIcon
 } from '@heroicons/vue/24/outline'
 

@@ -6,7 +6,6 @@ import {
   UserIcon, 
   CalendarIcon, 
   SparklesIcon,
-  ChevronRightIcon,
   PlusIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'
