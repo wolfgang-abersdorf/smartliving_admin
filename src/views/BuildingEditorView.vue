@@ -5,17 +5,7 @@ import api from '../api'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-// Fix Leaflet default icon issue
-import icon from 'leaflet/dist/images/marker-icon.png'
-import iconShadow from 'leaflet/dist/images/marker-shadow.png'
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
+// Map setup removed leaflet icon overrides
 
 const route = useRoute()
 const router = useRouter()
@@ -65,7 +55,7 @@ const isLoading = ref(isEditing.value)
 const isSaving = ref(false)
 
 const map = ref<L.Map | null>(null)
-const marker = ref<L.Marker | null>(null)
+// marker element removed in favor of fixed center pin
 const searchQuery = ref('')
 const isSearching = ref(false)
 
@@ -79,10 +69,8 @@ async function searchLocation() {
       const { lat, lon } = data[0]
       form.value.lat = parseFloat(lat)
       form.value.lng = parseFloat(lon)
-      if (map.value && marker.value) {
-        const pos: L.LatLngExpression = [form.value.lat, form.value.lng]
-        map.value.setView(pos, 16)
-        marker.value.setLatLng(pos)
+      if (map.value) {
+        map.value.flyTo([form.value.lat, form.value.lng], 16, { duration: 1 })
       }
     }
   } catch (error) {
@@ -101,26 +89,18 @@ function initMap() {
   map.value = L.map('map-container').setView([initialLat, initialLng], 13)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map.value as L.Map)
 
-  marker.value = L.marker([initialLat, initialLng], { draggable: true }).addTo(map.value as L.Map)
-
-  marker.value.on('dragend', () => {
-    if (marker.value) {
-      const position = marker.value.getLatLng()
-      form.value.lat = position.lat
-      form.value.lng = position.lng
-    }
+  map.value.on('move', () => {
+    const center = map.value!.getCenter()
+    form.value.lat = Number(center.lat.toFixed(6))
+    form.value.lng = Number(center.lng.toFixed(6))
   })
 
+  // Smooth centering on click
   map.value.on('click', (e: L.LeafletMouseEvent) => {
-    const { lat, lng } = e.latlng
-    form.value.lat = lat
-    form.value.lng = lng
-    if (marker.value) {
-      marker.value.setLatLng([lat, lng])
-    }
+    map.value?.flyTo(e.latlng, map.value.getZoom(), { duration: 0.5 })
   })
 }
 
@@ -131,9 +111,7 @@ watch(activeTab, (newTab) => {
       if (map.value) {
         map.value.invalidateSize()
         if (form.value.lat && form.value.lng) {
-          const pos: L.LatLngExpression = [form.value.lat, form.value.lng]
-          map.value.setView(pos)
-          if (marker.value) marker.value.setLatLng(pos)
+          map.value.setView([form.value.lat, form.value.lng], map.value.getZoom())
         }
       }
     })
@@ -141,10 +119,10 @@ watch(activeTab, (newTab) => {
 })
 
 watch(() => [form.value.lat, form.value.lng], ([newLat, newLng]) => {
-  if (marker.value && map.value) {
-    const pos: L.LatLngExpression = [Number(newLat), Number(newLng)]
-    if (!marker.value.getLatLng().equals(L.latLng(pos))) {
-       marker.value.setLatLng(pos)
+  if (map.value) {
+    const current = map.value.getCenter()
+    if (Math.abs(current.lat - Number(newLat)) > 0.0001 || Math.abs(current.lng - Number(newLng)) > 0.0001) {
+       map.value.setView([Number(newLat), Number(newLng)], map.value.getZoom())
     }
   }
 })
@@ -454,7 +432,19 @@ onMounted(() => {
                 </div>
 
                 <!-- Map Container -->
-                <div id="map-container" class="h-[500px] w-full rounded-2xl border border-slate-200 shadow-inner overflow-hidden z-0"></div>
+                <div class="relative h-[500px] w-full rounded-2xl border border-slate-200 shadow-inner overflow-hidden z-0">
+                  <div id="map-container" class="absolute inset-0 z-0"></div>
+                  
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] pointer-events-none z-[1000] drop-shadow-xl flex flex-col items-center justify-center">
+                    <div class="px-3 py-1 bg-gray-900/80 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg shadow-lg mb-1 whitespace-nowrap">
+                      Drag map to select exactly
+                    </div>
+                    <svg class="h-10 w-10 text-rose-500 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor">
+                      <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <div class="h-1.5 w-1.5 bg-rose-600 rounded-full absolute bottom-[5px] shadow-[0_0_8px_rgba(225,29,72,0.8)]"></div>
+                  </div>
+                </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div class="relative">
@@ -483,7 +473,7 @@ onMounted(() => {
                   </div>
                   <div class="flex-1">
                     <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-0.5">Current Location</h4>
-                    <p class="text-[11px] text-slate-500 font-medium">Double click anywhere to add a marker. Drag marker to move.</p>
+                    <p class="text-[11px] text-slate-500 font-medium">Drag the map to position the pin exactly. Click anywhere to center the map quickly.</p>
                   </div>
                   <div class="text-right">
                     <span class="text-[10px] font-mono font-bold text-indigo-400 block uppercase">Coordinates</span>
