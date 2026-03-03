@@ -5,6 +5,7 @@ import {
   BuildingOfficeIcon, 
   MapPinIcon, 
   ChevronRightIcon,
+  ChevronLeftIcon,
   MagnifyingGlassIcon,
   PlusIcon
 } from '@heroicons/vue/24/outline'
@@ -12,15 +13,26 @@ import {
 const buildings = ref<any[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
+const currentPage = ref(1)
+const totalPages = ref(1)
 
 async function fetchBuildings() {
+  isLoading.value = true
   try {
-    const response = await api.get('/buildings?per_page=50')
+    const response = await api.get(`/buildings?per_page=10&page=${currentPage.value}`)
     buildings.value = response.data.items
+    totalPages.value = response.data.pages || 1
   } catch (error) {
     console.error('Failed to load buildings', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+function changePage(page: number) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    fetchBuildings()
   }
 }
 
@@ -68,17 +80,18 @@ onMounted(fetchBuildings)
       </div>
     </div>
 
-    <div v-if="isLoading" class="space-y-4">
-       <div v-for="i in 5" :key="i" class="h-24 glass rounded-[1.5rem] animate-pulse"></div>
+    <div v-if="isLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+       <div v-for="i in 6" :key="i" class="h-24 glass rounded-[1.5rem] animate-pulse"></div>
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <div v-for="building in buildings" :key="building.id" 
            class="group glass rounded-[2rem] p-5 hover:bg-white hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 border border-white/60 hover:-translate-y-1">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center flex-1 min-w-0">
-            <div class="h-16 w-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 flex-shrink-0 group-hover:scale-110 transition-transform">
-              <BuildingOfficeIcon class="h-8 w-8" />
+            <div class="h-16 w-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 flex-shrink-0 overflow-hidden group-hover:scale-110 transition-transform">
+              <img v-if="building.acf?.main_image" :src="building.acf.main_image" loading="lazy" class="w-full h-full object-cover" alt="Property preview" />
+              <BuildingOfficeIcon v-else class="h-8 w-8" />
             </div>
             <div class="ml-5 truncate">
               <h3 class="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
@@ -110,10 +123,33 @@ onMounted(fetchBuildings)
         </div>
       </div>
 
-      <div v-if="buildings.length === 0" class="py-20 text-center glass rounded-[2rem]">
+      <div v-if="buildings.length === 0" class="col-span-full py-20 text-center glass rounded-[2rem]">
         <BuildingOfficeIcon class="h-16 w-16 mx-auto text-slate-200 mb-4" />
         <p class="text-slate-400 font-bold">No properties found.</p>
       </div>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="flex items-center justify-center gap-3">
+      <button 
+        @click="changePage(currentPage - 1)" 
+        :disabled="currentPage === 1"
+        class="h-10 w-10 flex items-center justify-center rounded-xl glass text-slate-500 hover:text-indigo-600 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/60 shadow-sm"
+      >
+        <ChevronLeftIcon class="h-5 w-5" />
+      </button>
+      
+      <div class="glass px-6 py-2.5 rounded-xl border border-white/60 shadow-sm text-sm font-bold text-slate-600">
+        Page {{ currentPage }} of {{ totalPages }}
+      </div>
+
+      <button 
+        @click="changePage(currentPage + 1)" 
+        :disabled="currentPage === totalPages"
+        class="h-10 w-10 flex items-center justify-center rounded-xl glass text-slate-500 hover:text-indigo-600 hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/60 shadow-sm"
+      >
+        <ChevronRightIcon class="h-5 w-5" />
+      </button>
     </div>
   </div>
 </template>
