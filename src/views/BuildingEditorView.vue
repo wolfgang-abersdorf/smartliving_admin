@@ -244,9 +244,19 @@ function removePhotoFromAlbum(albumIndex: number, photoIndex: number) {
   }
 }
 
-function hideImage(event: Event) {
+function getThumbnailUrl(url: string) {
+  if (!url) return '';
+  if (url.includes('-300x185') || url.includes('-150x150')) return url;
+  return url.replace(/(\.png|\.jpg|\.jpeg|\.webp)$/i, '-300x185$1');
+}
+
+function handleImageError(event: Event, originalUrl: string) {
   const target = event.target as HTMLImageElement
-  if (target) target.style.display = 'none'
+  if (target && target.src !== originalUrl) {
+    target.src = originalUrl
+  } else if (target) {
+    target.style.display = 'none'
+  }
 }
 
 function showImage(event: Event) {
@@ -553,22 +563,35 @@ onMounted(() => {
                    </div>
 
                    <div class="space-y-4">
-                      <h5 class="text-sm font-medium text-gray-700">Photos</h5>
                       
-                      <div v-for="(img, pIndex) in album.images" :key="pIndex" class="bg-white border border-gray-200 p-4 rounded flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                        <div class="w-full sm:flex-1">
-                          <input type="text" v-model="img.url" placeholder="https://...jpg" class="px-3 py-2 border block w-full rounded border-gray-300 text-sm">
+                      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <div v-for="(img, pIndex) in album.images" :key="pIndex" class="relative group aspect-square bg-slate-50 rounded-lg border border-slate-200 overflow-hidden shadow-sm hover:shadow transition-all">
+                          <img v-if="img.url" :src="getThumbnailUrl(img.url)" alt="preview" class="w-full h-full object-cover absolute inset-0 z-0" @error="handleImageError($event, img.url)" @load="showImage" />
+                          <div v-else class="w-full h-full flex flex-col justify-center items-center p-3 absolute inset-0 z-0">
+                              <svg class="h-8 w-8 text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              <span class="text-[10px] text-slate-400 text-center font-bold uppercase tracking-wider">No Image</span>
+                          </div>
+                          
+                          <!-- Hover Overlay -->
+                          <div :class="['absolute inset-0 z-10 bg-slate-900/70 p-3 flex flex-col justify-between transition-opacity duration-200', img.url ? 'opacity-0 group-hover:opacity-100' : 'opacity-100']">
+                            <div class="relative">
+                              <label class="block text-[9px] font-bold text-white/90 uppercase tracking-widest mb-1 shadow-sm">Image URL</label>
+                              <input type="text" v-model="img.url" placeholder="https://..." class="block w-full px-2 py-1.5 bg-white/10 border border-white/20 rounded-md text-[11px] font-medium text-white placeholder-white/50 focus:bg-white focus:text-slate-900 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+                            </div>
+                            <div class="flex justify-end mt-2">
+                              <button @click="removePhotoFromAlbum(aIndex, pIndex)" class="bg-rose-500/90 hover:bg-rose-600 text-white p-1.5 rounded border border-rose-500/50 backdrop-blur-sm transition-colors shadow-sm" title="Remove Photo">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div class="shrink-0">
-                           <img v-if="img.url" :src="img.url" alt="preview" class="w-24 h-16 object-cover rounded border border-gray-200" @error="hideImage" @load="showImage" />
-                        </div>
-                        <button @click="removePhotoFromAlbum(aIndex, pIndex)" class="text-red-500 hover:text-red-700 p-2 shrink-0">
-                          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
                       </div>
 
-                      <div class="pt-2">
-                         <button @click="addPhotoToAlbum(aIndex)" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors">+ Add Photo URL</button>
+                      <div class="pt-4 border-t border-slate-100">
+                         <button @click="addPhotoToAlbum(aIndex)" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-4 py-2 mt-2 rounded-lg hover:bg-indigo-100 transition-colors shadow-sm inline-flex items-center gap-2">
+                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                           Add Photo to Gallery
+                         </button>
                       </div>
                    </div>
                  </div>
