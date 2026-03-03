@@ -18,14 +18,16 @@ const isLoading = ref(true)
 
 async function fetchDashboardStats() {
   try {
-    const buildingsRes = await api.get('/buildings?per_page=1')
-    const collectionsRes = await api.get('/collections')
-    const usersRes = await api.get('/users')
+    const [buildingsRes, collectionsRes, usersRes] = await Promise.allSettled([
+      api.get('/buildings?per_page=1'),
+      api.get('/collections'),
+      api.get('/users')
+    ])
 
     stats.value = {
-      totalBuildings: buildingsRes.data.total || 0,
-      totalCollections: collectionsRes.data.length || 0,
-      totalUsers: usersRes.data.length || 0
+      totalBuildings: buildingsRes.status === 'fulfilled' ? buildingsRes.value.data.total || 0 : 0,
+      totalCollections: collectionsRes.status === 'fulfilled' ? collectionsRes.value.data.length || 0 : 0,
+      totalUsers: usersRes.status === 'fulfilled' ? usersRes.value.data.length || 0 : 0
     }
   } catch (error) {
     console.error('Failed to load dashboard stats', error)
