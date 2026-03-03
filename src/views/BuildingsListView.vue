@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import api from '../api'
 import { 
   BuildingOfficeIcon, 
@@ -19,7 +19,11 @@ const totalPages = ref(1)
 async function fetchBuildings() {
   isLoading.value = true
   try {
-    const response = await api.get(`/buildings?per_page=10&page=${currentPage.value}`)
+    let url = `/buildings?per_page=10&page=${currentPage.value}`
+    if (searchQuery.value) {
+      url += `&search=${encodeURIComponent(searchQuery.value)}`
+    }
+    const response = await api.get(url)
     buildings.value = response.data.items
     totalPages.value = response.data.pages || 1
   } catch (error) {
@@ -35,6 +39,15 @@ function changePage(page: number) {
     fetchBuildings()
   }
 }
+
+let searchTimeout: any = null
+watch(searchQuery, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchBuildings()
+  }, 400)
+})
 
 function getStatusColor(status: string) {
   switch (status?.toLowerCase()) {
