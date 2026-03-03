@@ -16,7 +16,8 @@ const activeTab = ref('info')
 const tabs = [
   { id: 'info', name: 'The building info' },
   { id: 'objects', name: 'The building Objects' },
-  { id: 'map', name: 'Location on Map' }
+  { id: 'map', name: 'Location on Map' },
+  { id: 'photos', name: 'Photos' }
 ]
 
 interface UnitForm {
@@ -34,6 +35,11 @@ interface BlockForm {
   units: UnitForm[];
 }
 
+interface PhotoAlbum {
+  album_title: string;
+  images: { url: string }[];
+}
+
 const form = ref({
   title: '',
   description: '',
@@ -48,7 +54,8 @@ const form = ref({
   stampPosition: 'top-right',
   lat: 0,
   lng: 0,
-  blocks: [] as BlockForm[]
+  blocks: [] as BlockForm[],
+  albums: [] as PhotoAlbum[]
 })
 
 const isLoading = ref(isEditing.value)
@@ -163,7 +170,11 @@ async function fetchBuilding() {
       stampPosition: acf.stamp_position || 'top-right',
       lat: data.coordinates?.[0]?.lat || 0,
       lng: data.coordinates?.[0]?.lng || 0,
-      blocks
+      blocks,
+      albums: (Array.isArray(acf.album) ? acf.album : []).map((a: any) => ({
+        album_title: a.album_title || a.title_album || '',
+        images: Array.isArray(a.images) ? a.images.map((url: string) => ({ url })) : []
+      }))
     }
   } catch (error) {
     console.error('Failed to load building', error)
@@ -175,10 +186,18 @@ async function fetchBuilding() {
 async function saveBuilding() {
   isSaving.value = true
   try {
+    const payload = {
+      ...form.value,
+      albums: form.value.albums.map(a => ({
+        album_title: a.album_title,
+        images: a.images.map(img => img.url).filter(url => url)
+      }))
+    }
+    
     if (isEditing.value) {
-      await api.put(`/buildings/${buildingId}`, form.value)
+      await api.put(`/buildings/${buildingId}`, payload)
     } else {
-      await api.post('/buildings', form.value)
+      await api.post('/buildings', payload)
     }
     router.push('/admin/buildings')
   } catch (error) {
@@ -200,6 +219,39 @@ function addBlock() {
 
 function removeBlock(index: number) {
   form.value.blocks.splice(index, 1)
+}
+
+function addAlbum() {
+  form.value.albums.push({
+    album_title: '',
+    images: []
+  })
+}
+
+function removeAlbum(index: number) {
+  form.value.albums.splice(index, 1)
+}
+
+function addPhotoToAlbum(albumIndex: number) {
+  if (form.value.albums && form.value.albums[albumIndex] && form.value.albums[albumIndex].images) {
+    form.value.albums[albumIndex].images.push({ url: '' })
+  }
+}
+
+function removePhotoFromAlbum(albumIndex: number, photoIndex: number) {
+  if (form.value.albums && form.value.albums[albumIndex] && form.value.albums[albumIndex].images) {
+    form.value.albums[albumIndex].images.splice(photoIndex, 1)
+  }
+}
+
+function hideImage(event: Event) {
+  const target = event.target as HTMLImageElement
+  if (target) target.style.display = 'none'
+}
+
+function showImage(event: Event) {
+  const target = event.target as HTMLImageElement
+  if (target) target.style.display = 'block'
 }
 
 function addUnit(blockIndex: number) {
@@ -481,6 +533,52 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- 4. Photos (Albums) -->
+          <div v-show="activeTab === 'photos'" class="space-y-8">
+            <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6 border border-gray-100">
+               <div class="flex justify-between items-center mb-6">
+                 <h3 class="text-lg font-medium leading-6 text-gray-900">Photo Albums</h3>
+               </div>
+
+               <div class="space-y-8">
+                 <div v-for="(album, aIndex) in form.albums" :key="aIndex" class="bg-gray-50 border border-gray-200 rounded-lg p-5 relative">
+                   <button @click="removeAlbum(aIndex)" class="absolute top-4 right-4 text-red-500 hover:text-red-700 text-sm font-medium">Remove Album</button>
+                   
+                   <div class="mb-6 max-w-sm">
+                      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Album Title</label>
+                      <input type="text" v-model="album.album_title" class="mt-1 px-3 py-2 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 font-medium" placeholder="e.g. Exterior, Interior, Amenities">
+                   </div>
+
+                   <div class="space-y-4">
+                      <h5 class="text-sm font-medium text-gray-700">Photos</h5>
+                      
+                      <div v-for="(img, pIndex) in album.images" :key="pIndex" class="bg-white border border-gray-200 p-4 rounded flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                        <div class="w-full sm:flex-1">
+                          <input type="text" v-model="img.url" placeholder="https://...jpg" class="px-3 py-2 border block w-full rounded border-gray-300 text-sm">
+                        </div>
+                        <div class="shrink-0">
+                           <img v-if="img.url" :src="img.url" alt="preview" class="w-24 h-16 object-cover rounded border border-gray-200" @error="hideImage" @load="showImage" />
+                        </div>
+                        <button @click="removePhotoFromAlbum(aIndex, pIndex)" class="text-red-500 hover:text-red-700 p-2 shrink-0">
+                          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+
+                      <div class="pt-2">
+                         <button @click="addPhotoToAlbum(aIndex)" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors">+ Add Photo URL</button>
+                      </div>
+                   </div>
+                 </div>
+               </div>
+
+               <div class="mt-8 border-t border-gray-200 pt-6">
+                  <button @click="addAlbum" class="w-full bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-sm font-medium text-gray-600 hover:text-indigo-600">
+                    <span class="text-lg mr-2">+</span> Add a new Photo Album
+                  </button>
+               </div>
             </div>
           </div>
         </div> <!-- End Tab Content -->
