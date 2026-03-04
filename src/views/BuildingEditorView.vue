@@ -47,6 +47,18 @@ const form = ref({
   address: '',
   status: 'DRAFT',
   buildingClass: '',
+  buildingMaterial: '',
+  roadType: '',
+  territory: '',
+  hasView: false,
+  hasPool: false,
+  hasCarAccess: false,
+  hasParking: false,
+  pdfUrl: '',
+  commission: '',
+  telegram: '',
+  advantages: [] as string[],
+  documents: [] as { title: string; url: string }[],
   developer: '',
   whatsapp: '',
   mainImageUrl: '',
@@ -163,6 +175,18 @@ async function fetchBuilding() {
       address: acf.address || '',
       status: data.status || 'PUBLISHED',
       buildingClass: acf.characteristics?.class_of_building || '',
+      buildingMaterial: acf.characteristics?.building_material || '',
+      roadType: acf.characteristics?.the_road_to_the_house || '',
+      territory: acf.characteristics?.territory || '',
+      hasView: acf.having_a_view || false,
+      hasPool: acf.availability_of_a_swimming_pool || false,
+      hasCarAccess: acf.car_access || false,
+      hasParking: acf.private_parking || false,
+      pdfUrl: acf.pdf_file || '',
+      commission: acf.commission || '',
+      telegram: acf.telegram || '',
+      advantages: Array.isArray(acf.advantages) ? acf.advantages : [],
+      documents: Array.isArray(acf.documents) ? acf.documents : [],
       developer: acf.developer || '',
       whatsapp: acf.whatsapp || '',
       mainImageUrl: acf.main_image || '',
@@ -378,6 +402,115 @@ onMounted(() => {
                    <label class="block text-sm font-medium text-gray-700">WhatsApp URL</label>
                    <input type="text" v-model="form.whatsapp" placeholder="https://wa.me/..." class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
                 </div>
+
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
+
+                <div class="sm:col-span-3">
+                   <label class="block text-sm font-medium text-gray-700">Commission</label>
+                   <input type="text" v-model="form.commission" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+
+                <div class="sm:col-span-3">
+                   <label class="block text-sm font-medium text-gray-700">Telegram</label>
+                   <input type="text" v-model="form.telegram" placeholder="https://t.me/..." class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+                
+                <div class="sm:col-span-6">
+                   <label class="block text-sm font-medium text-gray-700 mb-2">Advantages (Comma separated)</label>
+                   <input type="text" :value="form.advantages.join(', ')" @input="form.advantages = ($event.target as HTMLInputElement).value.split(',').map(s => s.trim())" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g. Near Beach, Close to Airport..." />
+                </div>
+
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
+
+                <!-- Toggles & Characteristics Area -->
+                <div class="sm:col-span-3 grid grid-cols-2 gap-6">
+                  <!-- Toggles -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Having a view</label>
+                    <div class="flex items-center">
+                      <input type="checkbox" v-model="form.hasView" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                      <span class="ml-2 text-sm text-gray-600">Yes</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Availability of a swimming pool</label>
+                    <div class="flex items-center">
+                      <input type="checkbox" v-model="form.hasPool" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                      <span class="ml-2 text-sm text-gray-600">Yes</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Car access</label>
+                    <div class="flex items-center">
+                      <input type="checkbox" v-model="form.hasCarAccess" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                      <span class="ml-2 text-sm text-gray-600">Yes</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Private parking</label>
+                    <div class="flex items-center">
+                      <input type="checkbox" v-model="form.hasParking" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                      <span class="ml-2 text-sm text-gray-600">Yes</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-3 bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                   <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Characteristics</h4>
+                   <div>
+                     <label class="block text-xs font-medium text-gray-600">Class of building</label>
+                     <select v-model="form.buildingClass" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                       <option value="Economy">Economy</option>
+                       <option value="Comfort">Comfort</option>
+                       <option value="Business">Business</option>
+                       <option value="Premium">Premium</option>
+                       <option value="Luxury">Luxury</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label class="block text-xs font-medium text-gray-600">Building material</label>
+                     <select v-model="form.buildingMaterial" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                       <option value="Monolith frame">Monolith frame</option>
+                       <option value="Brick">Brick</option>
+                       <option value="Wood">Wood</option>
+                       <option value="Other">Other</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label class="block text-xs font-medium text-gray-600">The road to the house</label>
+                     <select v-model="form.roadType" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                       <option value="Asphalt">Asphalt</option>
+                       <option value="Gravel">Gravel</option>
+                       <option value="Dirt">Dirt</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label class="block text-xs font-medium text-gray-600">Building area</label>
+                     <select v-model="form.territory" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                       <option value="Private">Private</option>
+                       <option value="Shared">Shared</option>
+                     </select>
+                   </div>
+                </div>
+
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
+
+                <div class="sm:col-span-3">
+                   <label class="block text-sm font-medium text-gray-700">Documents / Extra Files (URL)</label>
+                   <input v-if="form.documents.length === 0" type="text" @blur="if (($event.target as HTMLInputElement).value) { form.documents.push({ title: 'File', url: ($event.target as HTMLInputElement).value }); ($event.target as HTMLInputElement).value = ''; }" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." />
+                   <div v-for="(doc, dIndex) in form.documents" :key="dIndex" class="mt-2 flex gap-2">
+                     <input type="text" v-model="doc.url" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." />
+                     <button @click="form.documents.splice(dIndex, 1)" class="text-red-500 hover:text-red-700 text-sm font-medium px-2">Remove</button>
+                   </div>
+                   <button v-if="form.documents.length > 0" @click="form.documents.push({ title: 'File', url: '' })" class="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">+ Add another document URL</button>
+                </div>
+
+                <div class="sm:col-span-3">
+                   <label class="block text-sm font-medium text-gray-700">PDF File URL</label>
+                   <input type="text" v-model="form.pdfUrl" placeholder="https://...pdf" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
 
                 <div class="sm:col-span-6">
                    <label class="block text-sm font-medium text-gray-700">Main Image URL</label>
