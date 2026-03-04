@@ -31,7 +31,11 @@ interface UnitForm {
 interface BlockForm {
   title: string;
   category: string;
-  completionYear: number;
+  completionYear: number | string;
+  completionQuarter: string;
+  constructionStage: string;
+  typeOfOwnership: string;
+  leaseholdYears: string;
   units: UnitForm[];
 }
 
@@ -159,6 +163,10 @@ async function fetchBuilding() {
       title: b.title || '',
       category: b.category || 'Apartments',
       completionYear: b.completion_year || new Date().getFullYear(),
+      completionQuarter: b.completion_quarter || 'I',
+      constructionStage: b.construction_stage || 'Ready',
+      typeOfOwnership: b.type_of_ownership || 'Free hold',
+      leaseholdYears: b.total_years_of_leasehold || '',
       units: ((b.units && b.units.unit) || []).map((u: any) => ({
         numberTitle: u.numbertitle || u.numberTitle || '',
         areaM2: parseFloat(u.area_m2) || 0,
@@ -237,6 +245,10 @@ function addBlock() {
     title: '',
     category: 'Villas',
     completionYear: new Date().getFullYear(),
+    completionQuarter: 'I',
+    constructionStage: 'Ready',
+    typeOfOwnership: 'Free hold',
+    leaseholdYears: '',
     units: []
   })
 }
@@ -552,6 +564,36 @@ onMounted(() => {
                      <div>
                         <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Completion Year</label>
                         <input type="number" v-model="block.completionYear" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                     </div>
+                     <div>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Completion Quarter</label>
+                        <select v-model="block.completionQuarter" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="I">I</option>
+                          <option value="II">II</option>
+                          <option value="III">III</option>
+                          <option value="IV">IV</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Construction Stage</label>
+                        <select v-model="block.constructionStage" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="Off-plan">Off-plan</option>
+                          <option value="Under construction">Under construction</option>
+                          <option value="Key handover">Key handover</option>
+                          <option value="Ready">Ready</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Type of Ownership</label>
+                        <select v-model="block.typeOfOwnership" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                          <option value="Lease hold">Lease hold</option>
+                          <option value="Free hold">Free hold</option>
+                          <option value="Hak pakai">Hak pakai</option>
+                        </select>
+                     </div>
+                     <div v-show="block.typeOfOwnership === 'Lease hold'">
+                        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Total years of leasehold</label>
+                        <input type="text" v-model="block.leaseholdYears" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                      </div>
                    </div>
 
