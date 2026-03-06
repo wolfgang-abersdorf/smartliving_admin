@@ -70,6 +70,7 @@ const form = ref({
   stampPosition: 'top-right',
   lat: 0,
   lng: 0,
+  contacts: [] as { email: string; name: string; phone: string; position: string }[],
   blocks: [] as BlockForm[],
   albums: [] as PhotoAlbum[]
 })
@@ -200,12 +201,18 @@ async function fetchBuilding() {
       mainImageUrl: acf.main_image || '',
       stampImageUrl: acf.stamp_image || '',
       stampPosition: acf.stamp_position || 'top-right',
-      lat: data.coordinates?.[0]?.lat || 0,
-      lng: data.coordinates?.[0]?.lng || 0,
+      lat: data.lat || 0,
+      lng: data.lng || 0,
       blocks,
       albums: (Array.isArray(acf.album) ? acf.album : []).map((a: any) => ({
         album_title: a.album_title || a.title_album || '',
         images: Array.isArray(a.images) ? a.images.map((url: string) => ({ url })) : []
+      })),
+      contacts: (Array.isArray(acf.contacts) ? acf.contacts : []).map((c: any) => ({
+        email: c.email || '',
+        name: c.name || '',
+        phone: c.phone || '',
+        position: c.position || ''
       }))
     }
   } catch (error) {
@@ -262,6 +269,19 @@ function addAlbum() {
     album_title: '',
     images: []
   })
+}
+
+function addContact() {
+  form.value.contacts.push({
+    email: '',
+    name: '',
+    phone: '',
+    position: ''
+  })
+}
+
+function removeContact(index: number) {
+  form.value.contacts.splice(index, 1)
 }
 
 function removeAlbum(index: number) {
@@ -415,8 +435,6 @@ onMounted(() => {
                    <input type="text" v-model="form.whatsapp" placeholder="https://wa.me/..." class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
                 </div>
 
-                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
-
                 <div class="sm:col-span-3">
                    <label class="block text-sm font-medium text-gray-700">Commission</label>
                    <input type="text" v-model="form.commission" class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
@@ -426,6 +444,55 @@ onMounted(() => {
                    <label class="block text-sm font-medium text-gray-700">Telegram</label>
                    <input type="text" v-model="form.telegram" placeholder="https://t.me/..." class="mt-1 px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" />
                 </div>
+                
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-medium text-gray-700">Contacts</h3>
+                    <button @click="addContact" type="button" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      Add Contact
+                    </button>
+                  </div>
+                  
+                  <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-900 sm:pl-6">Email</th>
+                          <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold text-gray-900">Name</th>
+                          <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold text-gray-900">Phone</th>
+                          <th scope="col" class="px-3 py-3.5 text-left text-xs font-semibold text-gray-900">Position</th>
+                          <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                            <span class="sr-only">Remove</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200 bg-white">
+                        <tr v-for="(contact, index) in form.contacts" :key="index">
+                          <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                            <input type="email" v-model="contact.email" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs" />
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-4 text-sm">
+                            <input type="text" v-model="contact.name" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs" />
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-4 text-sm">
+                            <input type="text" v-model="contact.phone" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs" />
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-4 text-sm">
+                            <input type="text" v-model="contact.position" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs" />
+                          </td>
+                          <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            <button @click="removeContact(index)" type="button" class="text-red-600 hover:text-red-900">Remove</button>
+                          </td>
+                        </tr>
+                        <tr v-if="form.contacts.length === 0">
+                          <td colspan="5" class="py-4 text-center text-sm text-gray-500">No contacts added yet.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
                 
                 <div class="sm:col-span-6">
                    <label class="block text-sm font-medium text-gray-700 mb-2">Advantages (Comma separated)</label>
