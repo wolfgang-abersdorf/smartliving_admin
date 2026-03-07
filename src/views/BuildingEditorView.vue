@@ -26,6 +26,11 @@ interface UnitForm {
   price: number;
   status: string;
   rooms: number;
+  currency: string;
+  views: string[];
+  floor: number | null;
+  propertyType: string;
+  photos: string[];
 }
 
 interface BlockForm {
@@ -173,7 +178,12 @@ async function fetchBuilding() {
         areaM2: parseFloat(u.area_m2) || 0,
         price: parseFloat(u.price) || 0,
         status: u.status || 'Sale',
-        rooms: u.number_of_rooms || 1
+        rooms: u.number_of_rooms || 1,
+        currency: u.currency || 'USD',
+        views: Array.isArray(u.having_a_view) ? u.having_a_view : (typeof u.having_a_view === 'string' && u.having_a_view !== '' ? u.having_a_view.split(',').map((s: string) => s.trim()) : []),
+        floor: u.floor ? parseInt(u.floor) : null,
+        propertyType: u.type_of_unit || '',
+        photos: u.photo ? [u.photo] : (Array.isArray(u.photos) ? u.photos : [])
       }))
     }))
 
@@ -328,7 +338,12 @@ function addUnit(blockIndex: number) {
       areaM2: 0,
       price: 0,
       status: 'Sale',
-      rooms: 1
+      rooms: 1,
+      currency: 'USD',
+      views: [],
+      floor: null,
+      propertyType: '',
+      photos: []
     })
   }
 }
@@ -668,26 +683,76 @@ onMounted(() => {
                    <div class="pl-4 border-l-2 border-indigo-200 space-y-3">
                       <h5 class="text-sm font-medium text-gray-700">Units in this Block</h5>
                       
-                      <div v-for="(unit, uIndex) in block.units" :key="uIndex" class="bg-white border border-gray-200 p-3 rounded flex flex-wrap items-center gap-3">
-                        <div class="w-full sm:w-auto flex-1">
-                          <input type="text" v-model="unit.numberTitle" placeholder="Unit Name / Lot # *" required class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm">
+                      <div v-for="(unit, uIndex) in block.units" :key="uIndex" class="bg-white border border-gray-200 p-4 rounded mb-4 relative grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 transition-shadow">
+                        <div class="absolute -top-3 -right-3 flex space-x-2">
+                          <button @click="removeUnit(bIndex, uIndex)" class="text-red-500 hover:text-red-700 hover:bg-red-50 focus:outline-none bg-white border border-gray-200 shadow-sm rounded-full p-1.5 transition-colors" title="Remove Unit">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
                         </div>
-                        <div class="w-24">
-                          <input type="number" v-model="unit.areaM2" placeholder="m²" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm">
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Number/Title</label>
+                          <input type="text" v-model="unit.numberTitle" required class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                        <div class="w-32">
-                          <input type="number" v-model="unit.price" placeholder="Price" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm">
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Total unit area m2</label>
+                          <input type="number" v-model="unit.areaM2" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                        <div class="w-24">
-                          <select v-model="unit.status" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm">
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Price</label>
+                          <input type="number" v-model="unit.price" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Currency</label>
+                          <select v-model="unit.currency" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="USD">USD</option>
+                            <option value="IDR">IDR</option>
+                            <option value="EUR">EUR</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Having a view (comma separated)</label>
+                          <input type="text" :value="unit.views.join(', ')" @input="unit.views = ($event.target as HTMLInputElement).value.split(',').map(s => s.trim())" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g. sunset, ocean">
+                        </div>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Sale status</label>
+                          <select v-model="unit.status" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="Sale">Sale</option>
                             <option value="Sold">Sold</option>
                             <option value="Reserved">Reserved</option>
                           </select>
                         </div>
-                        <button @click="removeUnit(bIndex, uIndex)" class="text-red-500 hover:text-red-700 focus:outline-none" title="Remove Unit">
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Number of bedrooms</label>
+                          <input type="number" v-model="unit.rooms" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Floor</label>
+                          <input type="number" v-model="unit.floor" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        
+                        <div>
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Type of unit</label>
+                          <select v-model="unit.propertyType" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Select</option>
+                            <option value="Apartment">Apartment</option>
+                            <option value="Villa">Villa</option>
+                            <option value="Townhouse">Townhouse</option>
+                            <option value="Commercial">Commercial</option>
+                          </select>
+                        </div>
+                        
+                        <div class="sm:col-span-2">
+                          <label class="block text-xs font-medium text-gray-700 mb-1">Photo URLs (comma separated)</label>
+                          <textarea :value="unit.photos.join(', ')" @input="unit.photos = ($event.target as HTMLTextAreaElement).value.split(',').map(s => s.trim())" rows="2" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        </div>
                       </div>
 
                       <div class="pt-2">
