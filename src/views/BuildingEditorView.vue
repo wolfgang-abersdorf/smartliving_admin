@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
+import MultiSelectTags from '../components/MultiSelectTags.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -87,6 +88,26 @@ const map = ref<L.Map | null>(null)
 // marker element removed in favor of fixed center pin
 const searchQuery = ref('')
 const isSearching = ref(false)
+
+const viewOptions = [
+  'to the sunset',
+  'to the sunrise',
+  'to the ocean',
+  'to the mountain',
+  'to the pool',
+  'to the garden',
+  'no view'
+]
+
+const advantageOptions = [
+  'Near Beach',
+  'Close to Airport',
+  'Security 24/7',
+  'Private Pool',
+  'Gym',
+  'Parking',
+  'City Center'
+]
 
 async function searchLocation() {
   if (!searchQuery.value) return
@@ -510,8 +531,12 @@ onMounted(() => {
                 <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
                 
                 <div class="sm:col-span-6">
-                   <label class="block text-sm font-medium text-gray-700 mb-2">Advantages (Comma separated)</label>
-                   <input type="text" :value="form.advantages.join(', ')" @input="form.advantages = ($event.target as HTMLInputElement).value.split(',').map(s => s.trim())" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g. Near Beach, Close to Airport..." />
+                   <MultiSelectTags 
+                     v-model="form.advantages" 
+                     :options="advantageOptions" 
+                     label="Advantages" 
+                     placeholder="Type or select advantages..." 
+                   />
                 </div>
 
                 <div class="sm:col-span-6 border-t border-gray-200 mt-2 pt-6"></div>
@@ -715,8 +740,12 @@ onMounted(() => {
                         </div>
                         
                         <div>
-                          <label class="block text-xs font-medium text-gray-700 mb-1">Having a view (comma separated)</label>
-                          <input type="text" :value="unit.views.join(', ')" @input="unit.views = ($event.target as HTMLInputElement).value.split(',').map(s => s.trim())" class="px-3 py-1.5 border block w-full rounded border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g. sunset, ocean">
+                          <MultiSelectTags 
+                            v-model="unit.views" 
+                            :options="viewOptions" 
+                            label="Having a view" 
+                            placeholder="Select or type views..." 
+                          />
                         </div>
                         
                         <div>
