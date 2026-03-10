@@ -297,7 +297,7 @@ async function saveBuilding() {
       alert('Property saved successfully!')
     } else {
       const response = await api.post('/buildings', payload)
-      router.push(`/admin/buildings/edit/${response.data.id}`)
+      router.push(`/admin/buildings/${response.data.id}`)
     }
   } catch (error) {
     console.error('Failed to save building', error)
