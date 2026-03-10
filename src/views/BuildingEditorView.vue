@@ -88,6 +88,7 @@ const map = ref<L.Map | null>(null)
 // marker element removed in favor of fixed center pin
 const searchQuery = ref('')
 const isSearching = ref(false)
+const isMapEditMode = ref(false)
 
 const viewOptions = [
   'to the sunset',
@@ -142,7 +143,15 @@ function initMap() {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map.value as L.Map)
 
-  map.value.on('move', () => {
+  if (!isMapEditMode.value) {
+    map.value.dragging.disable()
+    map.value.touchZoom.disable()
+    map.value.doubleClickZoom.disable()
+    map.value.scrollWheelZoom.disable()
+  }
+
+  map.value.on('moveend', () => {
+    if (!isMapEditMode.value) return
     const center = map.value!.getCenter()
     form.value.lat = Number(center.lat.toFixed(6))
     form.value.lng = Number(center.lng.toFixed(6))
@@ -150,9 +159,28 @@ function initMap() {
 
   // Smooth centering on click
   map.value.on('click', (e: L.LeafletMouseEvent) => {
+    if (!isMapEditMode.value) return
     map.value?.flyTo(e.latlng, map.value.getZoom(), { duration: 0.5 })
   })
 }
+
+watch(isMapEditMode, (isEdit) => {
+  if (map.value) {
+    if (isEdit) {
+      map.value.dragging.enable()
+      map.value.touchZoom.enable()
+      map.value.doubleClickZoom.enable()
+      map.value.scrollWheelZoom.enable()
+    } else {
+      map.value.dragging.disable()
+      map.value.touchZoom.disable()
+      map.value.doubleClickZoom.disable()
+      map.value.scrollWheelZoom.disable()
+      // ensure we recenter just in case
+      map.value.setView([form.value.lat, form.value.lng], map.value.getZoom())
+    }
+  }
+})
 
 watch(activeTab, (newTab) => {
   if (newTab === 'map') {
@@ -232,8 +260,8 @@ async function fetchBuilding() {
       mainImageUrl: acf.main_image || '',
       stampImageUrl: acf.stamp_image || '',
       stampPosition: acf.stamp_position || 'top-right',
-      lat: data.lat || 0,
-      lng: data.lng || 0,
+      lat: data.coordinates && data.coordinates[0] ? data.coordinates[0].lat : 0,
+      lng: data.coordinates && data.coordinates[0] ? data.coordinates[0].lng : 0,
       blocks,
       albums: (Array.isArray(acf.album) ? acf.album : []).map((a: any) => ({
         album_title: a.album_title || a.title_album || '',
@@ -266,10 +294,11 @@ async function saveBuilding() {
     
     if (isEditing.value) {
       await api.put(`/buildings/${buildingId}`, payload)
+      alert('Property saved successfully!')
     } else {
-      await api.post('/buildings', payload)
+      const response = await api.post('/buildings', payload)
+      router.push(`/admin/buildings/edit/${response.data.id}`)
     }
-    router.push('/admin/buildings')
   } catch (error) {
     console.error('Failed to save building', error)
     alert('Error saving building. Check console.')
@@ -804,7 +833,14 @@ onMounted(() => {
             <div class="bg-white px-4 py-5 shadow sm:rounded-lg sm:p-6 border border-gray-100">
               <div class="sm:flex sm:items-center sm:justify-between mb-6">
                 <h3 class="text-lg font-medium leading-6 text-gray-900">Location on Map</h3>
-                <div class="text-xs text-slate-400 font-medium">Click on map or drag marker to set coordinates</div>
+                <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                  <div class="text-xs text-slate-400 font-medium hidden sm:block">Click on map or drag marker to set coordinates</div>
+                  <button type="button" @click="isMapEditMode = !isMapEditMode" :class="isMapEditMode ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <svg v-if="!isMapEditMode" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    {{ isMapEditMode ? 'Editing Mode ON' : 'Enable Edit Mode' }}
+                  </button>
+                </div>
               </div>
 
               <div class="grid grid-cols-1 gap-6">
@@ -817,13 +853,14 @@ onMounted(() => {
                     type="text" 
                     v-model="searchQuery" 
                     @keydown.enter.prevent="searchLocation"
+                    :disabled="!isMapEditMode"
                     placeholder="Search for a location (e.g. Canggu, Bali)..." 
-                    class="block w-full pl-11 pr-24 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-100 focus:bg-white outline-none transition-all shadow-sm group-hover:border-slate-200"
+                    class="block w-full pl-11 pr-24 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-indigo-100 focus:bg-white outline-none transition-all shadow-sm group-hover:border-slate-200 disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                   <button 
                     @click="searchLocation" 
-                    class="absolute right-2 top-2 bottom-2 px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2"
-                    :disabled="isSearching"
+                    class="absolute right-2 top-2 bottom-2 px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                    :disabled="isSearching || !isMapEditMode"
                   >
                     {{ isSearching ? 'Finding...' : 'Search' }}
                   </button>
@@ -834,7 +871,7 @@ onMounted(() => {
                   <div id="map-container" class="absolute inset-0 z-0"></div>
                   
                   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[90%] pointer-events-none z-[1000] drop-shadow-xl flex flex-col items-center justify-center">
-                    <div class="px-3 py-1 bg-gray-900/80 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg shadow-lg mb-1 whitespace-nowrap">
+                    <div v-if="isMapEditMode" class="transition-opacity px-3 py-1 bg-gray-900/80 backdrop-blur-sm text-white text-[10px] font-bold rounded-lg shadow-lg mb-1 whitespace-nowrap">
                       Drag map to select exactly
                     </div>
                     <svg class="h-10 w-10 text-rose-500 drop-shadow-md" viewBox="0 0 24 24" fill="currentColor">
@@ -849,18 +886,20 @@ onMounted(() => {
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Latitude</label>
                     <input 
                       type="number" 
-                      v-model.number="form.lat" 
+                      v-model="form.lat" 
                       step="any" 
-                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm" 
+                      :disabled="!isMapEditMode"
+                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm disabled:opacity-50 disabled:bg-gray-100 disabled:text-gray-500" 
                     />
                   </div>
                   <div class="relative">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Longitude</label>
                     <input 
                       type="number" 
-                      v-model.number="form.lng" 
+                      v-model="form.lng" 
                       step="any" 
-                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm" 
+                      :disabled="!isMapEditMode"
+                      class="block w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all shadow-sm disabled:opacity-50 disabled:bg-gray-100 disabled:text-gray-500" 
                     />
                   </div>
                 </div>
